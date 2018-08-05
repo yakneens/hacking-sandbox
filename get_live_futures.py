@@ -46,7 +46,7 @@ new_client_id = int(random.random() * 100)
 def connect_ib():
     print(f'Client ID {new_client_id}')
     ib = IB()
-    ib.connect('127.0.0.1', IB_PORT, clientId=10)
+    ib.connect('127.0.0.1', IB_PORT, clientId=100)
     return ib
 
 def main():

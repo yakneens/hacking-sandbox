@@ -7,7 +7,7 @@ from sqlalchemy import create_engine, MetaData, update, TIMESTAMP
 import logging
 import os
 import asyncio
-
+import random
 import os
 
 IB_PORT = os.environ.get('IB_PORT')
@@ -73,7 +73,7 @@ def connect_ib():
     ib = IB()
     ib.errorEvent += onError
     ib.RequestTimeout = 300
-    ib.connect('127.0.0.1', IB_PORT, clientId=116, timeout=5)
+    ib.connect('127.0.0.1', IB_PORT, clientId=int(random.random() * 1000), timeout=5)
     return ib
 
 client = InfluxDBClient(mode='blocking', db='stocks')
@@ -87,13 +87,16 @@ query_template = 'select c.*, b."dailyBarId", b."date", b.volume from contracts 
                  'DATE_PART(\'day\', c."lastTradeDateOrContractMonth" :: timestamp with time zone - now())  >= -3 ' \
                  'order by b.volume desc, c."lastTradeDateOrContractMonth", c.priority;'
 
-days_to_expiry_cutoff = '1500'
+days_to_expiry_cutoff = '3'
 
 priorities = [(1,' b.volume > 1000 '),
               (2, ' b.volume <= 1000 and b.volume > 500 '),
               (3, ' b.volume <= 500 and b.volume > 100 '),
               (4, ' b.volume <= 100 and b.volume >= 10'),
               (5, ' b.volume < 10 and b.volume >= 5') ]
+
+#priorities = [(1,' b.volume >= 5 '),]
+
 
 def to_df(my_ticks, conId, symbol):
     tick_df = util.df(my_ticks)
@@ -115,6 +118,9 @@ def update_ticks_retrieved(this_bar):
         values(ticks_retrieved=True)
     connection.execute(stmt)
 
+
+skip_flag = True
+
 def main():
     ib = connect_ib()
 
@@ -134,6 +140,11 @@ def main():
             num_rows = len(con_df)
             flag = 0
             for index,row in con_df.iterrows():
+
+                global skip_flag
+                if row.symbol=="AMGN":
+                    #skip_flag = False
+                    continue
 
                 print(f"Processing contract {index}/{num_rows} {row.localSymbol} for {row.date} with volume {row.volume}")
                 logging.info(f"Processing contract {row.localSymbol} for {row.date} with volume {row.volume}")
@@ -215,6 +226,7 @@ if __name__ == '__main__':
             print("General error. Retrying after 60 seconds")
             time.sleep(60)
             continue
+
     print("Execution time was: {}".format(str(time.time() - start_time)))
 
 ib.run()

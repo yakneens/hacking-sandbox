@@ -55,7 +55,7 @@ def connect_ib():
     ib = IB()
     ib.errorEvent += onError
     ib.RequestTimeout = 300
-    ib.connect('127.0.0.1', IB_PORT, clientId=int(random.random() * 100), timeout=2)
+    ib.connect('127.0.0.1', IB_PORT, clientId=int(random.random() * 1000), timeout=2)
     return ib
 
 
@@ -124,7 +124,13 @@ def main():
             else:
                 print(f"Unknown security type {row.secType}")
                 exit(1)
-            num_days = (datetime.datetime.now(datetime.timezone.utc) - row.firstTimestamp.to_pydatetime()).days + 1
+            #num_days = (datetime.datetime.now(datetime.timezone.utc) - row.firstTimestamp.to_pydatetime()).days + 1
+            try:
+                num_days = (datetime.datetime.now(datetime.timezone.utc) - row.firstTimestamp).days + 1
+            except TypeError as e:
+                num_days = (datetime.datetime.now(datetime.timezone.utc) - row.firstTimestamp.to_pydatetime()).days + 1
+
+
             print(f"{index}/{num_rows} {datetime.datetime.now()} Processing contract {row.localSymbol} {row.lastTradeDateOrContractMonth} {row.firstTimestamp}")
             try:
                 my_bars = ib.reqHistoricalData(my_con, endDateTime='', durationStr='{} D'.format(num_days),

@@ -122,7 +122,12 @@ def main():
         except ValueError:
             continue
 
-        num_days = (datetime.datetime.now(datetime.timezone.utc) - row.lastDate).days + 1
+        try:
+            num_days = (datetime.datetime.now(datetime.timezone.utc) - row.lastDate).days + 1
+        except TypeError as e:
+            num_days = (datetime.datetime.now(datetime.timezone.utc) - row.lastDate.to_pydatetime()).days + 1
+
+
         print(f"{index}/{num_rows} {datetime.datetime.now()} Processing contract {row.localSymbol} {row.lastTradeDateOrContractMonth} {row.lastDate}")
         try:
             my_bars = ib.reqHistoricalData(my_con, endDateTime='', durationStr='{} D'.format(num_days),

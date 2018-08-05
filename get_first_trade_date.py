@@ -6,7 +6,7 @@ from ib_insync import *
 from sqlalchemy import create_engine, update, TIMESTAMP
 from sqlalchemy.orm import sessionmaker
 from sqlalchemy.schema import MetaData
-
+import random
 import os
 
 IB_PORT = os.environ.get('IB_PORT')
@@ -67,7 +67,7 @@ def connect_ib():
     ib = IB()
     ib.RequestTimeout = 300
     ib.errorEvent += onError
-    ib.connect('127.0.0.1', IB_PORT, clientId=111)
+    ib.connect('127.0.0.1', IB_PORT, clientId=int(random.random() * 1000))
 
     return ib
 
@@ -114,9 +114,9 @@ def get_timestamp(contract, ib):
 
 def main():
     ib = connect_ib()
-    start_cutoff = 10
-    end_cutoff = 60
-    last_load = 2
+    start_cutoff = 25
+    end_cutoff = 120
+    last_load = 4
     cant_get_timestamp = "true"
     date_order = "ASC"
 
@@ -142,7 +142,7 @@ def main():
 
     for index, row in dates_df.iterrows():
 
-        query = 'SELECT c."conId", c."exchange", c."localSymbol", c."secType", c."lastTradeDateOrContractMonth" FROM contracts c ' \
+        query = 'SELECT c."conId", c."exchange", c."localSymbol", c."secType", c."lastTradeDateOrContractMonth", c."symbol" FROM contracts c ' \
                 'WHERE c."conId" NOT IN (SELECT DISTINCT "contractId" ' \
                 'FROM contract_ib_first_timestamp ' \
                 'WHERE "contractId" IS NOT NULL ' \
@@ -161,9 +161,9 @@ def main():
         tasks = []
         flag = True
         for index, row in con_df.iterrows():
-            # if flag:
-            #     flag = False
-            #     continue
+            if row.symbol == "AMGN":
+                 flag = False
+                 continue
             print(f'{index}/{num_rows} {row.localSymbol} {row.lastTradeDateOrContractMonth}')
             try:
                 (conId, first_date) = get_timestamp(row, ib)
